@@ -24,7 +24,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.WC_BASE_URL }}/wp-json/wc/v3/products",
+        "url": "https://fadua.ar/pruebas/wp-json/wc/v3/products",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendQuery": true,
@@ -63,13 +63,13 @@
     },
     {
       "parameters": {
-        "authentication": "oAuth2",
+        "authentication": "serviceAccount",
         "resource": "sheet",
         "operation": "read",
         "documentId": {
           "__rl": true,
           "mode": "id",
-          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+          "value": "YOUR_GOOGLE_SHEET_ID"
         },
         "sheetName": {
           "__rl": true,
@@ -88,8 +88,8 @@
       "id": "41602654-efa2-4a88-b01d-2caae5d77572",
       "alwaysOutputData": true,
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "PLACEHOLDER_GOOGLE_SHEETS_CRED_ID",
+        "googleApi": {
+          "id": "PLACEHOLDER_GOOGLE_SA_CRED_ID",
           "name": "Google Sheets - FADUA"
         }
       }
@@ -111,13 +111,13 @@
     },
     {
       "parameters": {
-        "authentication": "oAuth2",
+        "authentication": "serviceAccount",
         "resource": "sheet",
         "operation": "append",
         "documentId": {
           "__rl": true,
           "mode": "id",
-          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+          "value": "YOUR_GOOGLE_SHEET_ID"
         },
         "sheetName": {
           "__rl": true,
@@ -195,8 +195,8 @@
       ],
       "id": "a3632daf-2c64-46c5-94f4-03ebf3d8b155",
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "PLACEHOLDER_GOOGLE_SHEETS_CRED_ID",
+        "googleApi": {
+          "id": "PLACEHOLDER_GOOGLE_SA_CRED_ID",
           "name": "Google Sheets - FADUA"
         }
       }

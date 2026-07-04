@@ -5,9 +5,6 @@ services:
     ports:
       - "5678:5678"
     environment:
-      # Read by the workflow via {{ $env.NAME }}
-      - WC_BASE_URL=https://fadua.ar/pruebas
-      - GOOGLE_SHEET_ID=${GOOGLE_SHEET_ID}
       # Persists the encrypted credential store across restarts. Set it once
       # in n8n/.env and never change it, or saved credentials become unreadable.
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
