@@ -41,7 +41,7 @@ def _count_phrase(count: int) -> str:
 def _build_subject(count: int) -> str:
     """Build the email subject, agreeing in number (the demo syncs one product)."""
     synced_word = "sincronizado" if count == 1 else "sincronizados"
-    return f"[PYTHON] {_count_phrase(count)} {synced_word}"
+    return f"[PREFECT] {_count_phrase(count)} {synced_word}"
 
 
 def _build_body(new_products: list) -> str:
