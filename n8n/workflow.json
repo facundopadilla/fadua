@@ -1,0 +1,317 @@
+{
+  "name": "FADUA - WooCommerce to Google Sheets Sync (n8n)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        300
+      ],
+      "id": "7b1b9476-1a19-454b-9834-49ad0a4618dc"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.WC_BASE_URL }}/wp-json/wc/v3/products",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "publish"
+            },
+            {
+              "name": "per_page",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Get WooCommerce Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        460,
+        300
+      ],
+      "id": "b11361a0-3db4-422a-b6f3-950c344a5911",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "stopWorkflow",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "PLACEHOLDER_WOOCOMMERCE_CRED_ID",
+          "name": "WooCommerce API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "n8n"
+        },
+        "options": {}
+      },
+      "name": "Get Existing Sheet Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        680,
+        300
+      ],
+      "id": "41602654-efa2-4a88-b01d-2caae5d77572",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PLACEHOLDER_GOOGLE_SHEETS_CRED_ID",
+          "name": "Google Sheets - FADUA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "mode": "runOnceForAllItems",
+        "jsCode": "const products = $('Get WooCommerce Products').all().map((item) => item.json);\nconst existingRows = $('Get Existing Sheet Rows').all().map((item) => item.json);\n\n// Detect new products by ID only. WooCommerce keeps the original creation\n// date even after a draft product becomes published, so date-based diffing\n// is not reliable (verified against the live API). Empty IDs are filtered so\n// that an empty sheet on the first run does not create a phantom entry.\nconst existingIds = new Set(\n  existingRows\n    .map((row) => String(row.ID))\n    .filter((id) => id && id !== 'undefined')\n);\n\nconst newProducts = products.filter(\n  (product) => !existingIds.has(String(product.id))\n);\n\nconst syncedAt = new Date().toISOString();\n\nreturn newProducts.map((product) => ({\n  json: {\n    ID: product.id,\n    Producto: product.name,\n    Precio: product.price,\n    Imagen: product.images && product.images.length > 0 ? product.images[0].src : '',\n    Sincronizado: syncedAt,\n  },\n}));\n"
+      },
+      "name": "Diff New Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "id": "c261e7a4-9e0a-4fc2-bcb6-c64023215d90"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.GOOGLE_SHEET_ID }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "n8n"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $json.ID }}",
+            "Producto": "={{ $json.Producto }}",
+            "Precio": "={{ $json.Precio }}",
+            "Imagen": "={{ $json.Imagen }}",
+            "Sincronizado": "={{ $json.Sincronizado }}"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Producto",
+              "displayName": "Producto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Precio",
+              "displayName": "Precio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Imagen",
+              "displayName": "Imagen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "Sincronizado",
+              "displayName": "Sincronizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Append New Products",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        300
+      ],
+      "id": "a3632daf-2c64-46c5-94f4-03ebf3d8b155",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PLACEHOLDER_GOOGLE_SHEETS_CRED_ID",
+          "name": "Google Sheets - FADUA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Collapse the N appended rows into a single item so the summary email is\n// sent exactly once per run, no matter how many new products were added.\n// If there were zero new products this node never runs (the append node\n// produced no items), so no email is sent.\nreturn [{ json: { count: $('Diff New Products').all().length } }];\n"
+      },
+      "name": "Summarize For Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ],
+      "id": "07c721cd-7753-41d3-b384-9987ece3c3ae"
+    },
+    {
+      "parameters": {
+        "fromEmail": "REPLACE_WITH_SENDER_GMAIL_ADDRESS@gmail.com",
+        "toEmail": "tejada.ca23@gmail.com",
+        "subject": "=[N8N] {{ $('Diff New Products').all().length }} producto(s) nuevo(s) sincronizado(s)",
+        "emailFormat": "text",
+        "text": "=Se sincronizaron {{ $('Diff New Products').all().length }} producto(s) nuevo(s) desde WooCommerce hacia Google Sheets (pestaña \"n8n\").\n\nDetalle:\n{{ $('Diff New Products').all().map(item => `- ID ${item.json.ID}: ${item.json.Producto} (precio: ${item.json.Precio})`).join('\\n') }}\n\nFecha de sincronización: {{ $now.toISO() }}\n",
+        "options": {}
+      },
+      "name": "Send Email Summary",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1560,
+        300
+      ],
+      "id": "623566f1-caed-4db1-84c6-9aaf44bd0bef",
+      "credentials": {
+        "smtp": {
+          "id": "PLACEHOLDER_SMTP_CRED_ID",
+          "name": "SMTP - FADUA"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get WooCommerce Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get WooCommerce Products": {
+      "main": [
+        [
+          {
+            "node": "Get Existing Sheet Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Sheet Rows": {
+      "main": [
+        [
+          {
+            "node": "Diff New Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Diff New Products": {
+      "main": [
+        [
+          {
+            "node": "Append New Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append New Products": {
+      "main": [
+        [
+          {
+            "node": "Summarize For Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize For Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
