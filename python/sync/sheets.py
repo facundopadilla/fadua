@@ -63,41 +63,25 @@ def _safe_cell(row: list, index: int | None) -> str:
 def read_existing_rows(sa_json_path: str, sheet_id: str, tab: str) -> dict:
     """Read existing product rows from the sheet, keyed by str(ID).
 
-    Uses get_all_values(): row 1 is the header row, data starts at row 2.
-    Columns are looked up BY HEADER NAME (not hardcoded position) so the
-    mapping stays correct if a column is reordered or absent. Rows whose ID
-    cell isn't numeric (blank cells, stray text) are skipped, matching
-    read_existing_ids. Each entry's "row" is the real 1-indexed spreadsheet
-    row number, needed by update_rows() to target that exact record.
+    Reads by FIXED column position (A=ID, B=Producto, C=Precio, D=Imagen)
+    rather than by header text, so it keeps working if the header row is
+    written in a different case (e.g. lowercase "id"/"precio") or is missing
+    entirely. Rows whose first cell isn't a number (the header row, blank
+    rows, stray text) are skipped. Each entry's "row" is the real 1-indexed
+    spreadsheet row number, needed by update_rows() to target that record.
     """
     worksheet = _open_worksheet(sa_json_path, sheet_id, tab)
-    all_values = worksheet.get_all_values()
-    if not all_values:
-        return {}
-
-    header_row = all_values[0]
-    header_index = {header: index for index, header in enumerate(header_row)}
-
-    id_index = header_index.get("ID")
-    if id_index is None:
-        return {}
-
-    field_indexes = {
-        field: header_index.get(field) for field in ("Producto", "Precio", "Imagen")
-    }
-
     existing_by_id = {}
-    for row_number, row in enumerate(all_values[1:], start=2):
-        raw_id = _safe_cell(row, id_index).strip()
+    for row_number, row in enumerate(worksheet.get_all_values(), start=1):
+        raw_id = _safe_cell(row, 0).strip()
         if not raw_id.isdigit():
             continue
         existing_by_id[raw_id] = {
             "row": row_number,
-            "Producto": _safe_cell(row, field_indexes["Producto"]),
-            "Precio": _safe_cell(row, field_indexes["Precio"]),
-            "Imagen": _safe_cell(row, field_indexes["Imagen"]),
+            "Producto": _safe_cell(row, 1),
+            "Precio": _safe_cell(row, 2),
+            "Imagen": _safe_cell(row, 3),
         }
-
     return existing_by_id
 
 
