@@ -1,0 +1,12 @@
+# Never bake secrets or local artifacts into the image
+.env
+.env.example
+service-account.json
+.venv/
+.uv/
+__pycache__/
+*.pyc
+.pytest_cache/
+logs/
+tests/
+.impeccable/

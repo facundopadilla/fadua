@@ -30,23 +30,21 @@ Los mails salen por SMTP de Gmail. No se usa la contraseña normal de la cuenta 
 
 Las claves ya están generadas para este challenge (`ck_...` y `cs_...`). Si hiciera falta rehacerlas, se crean en WooCommerce, en Ajustes → Avanzado → API REST, con permiso de lectura.
 
-## 4. Versión Python en el servidor
+## 4. Versión Python con Prefect (la que se ejecuta)
+
+Esta es la que corre en el VPS. Prefect levanta una UI donde ves cada corrida con su estado y sus logs, y podés pausar el schedule sin tocar el servidor.
 
 ```bash
-# instalar uv (si no está)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
 git clone <repo> fadua-woo-sheets-sync
 cd fadua-woo-sheets-sync/python
-uv sync
 
 cp .env.example .env      # completá las credenciales reales
-chmod 600 .env            # solo tu usuario lo lee
+chmod 600 .env
 # copiá el service-account.json a esta carpeta
 chmod 600 service-account.json
 ```
 
-El `.env` (y su plantilla `.env.example`) tienen estas variables:
+El `.env` tiene estas variables (docker compose las lee solo):
 
 ```
 WC_BASE_URL=https://fadua.ar/pruebas
@@ -60,18 +58,50 @@ SMTP_PORT=587
 SMTP_USER=tu_gmail_remitente@gmail.com
 SMTP_APP_PASSWORD=tu_app_password_de_gmail
 NOTIFY_TO=tejada.ca23@gmail.com
+PREFECT_UI_API_URL=https://prefect.facundopadilla.com/api
 ```
 
-Probá una corrida a mano antes de programar nada:
+`PREFECT_UI_API_URL` es la URL pública que el navegador usa para hablar con la API por detrás del reverse proxy. Para una prueba local sin dominio, dejala en `http://localhost:4200/api`.
+
+Levantá el stack:
 
 ```bash
-uv run python -m sync
+docker compose up -d --build
 ```
 
-Si vuelve sin errores y la fila aparece en la pestaña `python`, ya está. Programá el cron con `crontab -e` (ajustá las rutas):
+Arranca dos contenedores: `prefect-server` (la UI y la API en el `:4200`) y `prefect-flow` (el runner que corre el sync cada 5 minutos). La primera corrida hace el baseline y manda el mail.
+
+### Exponerlo en prefect.facundopadilla.com
+
+Apuntá tu reverse proxy al `:4200` del server. Con Caddy es una línea:
+
+```caddy
+prefect.facundopadilla.com {
+    reverse_proxy localhost:4200
+}
+```
+
+Con nginx, un `proxy_pass http://localhost:4200;` en el bloque del subdominio, con los headers de upgrade para que anden los websockets de la UI.
+
+### Pausar o cancelar desde la UI
+
+Entrá al deployment `fadua-woo-sheets-sync/fadua-sync`. Desde ahí:
+
+- El toggle de schedule lo **pausa** (deja de disparar corridas) y lo reanuda cuando quieras.
+- En una corrida en curso, el botón **Cancel** la corta.
+
+Para bajar todo, `docker compose down` (con `-v` además borra el historial de corridas).
+
+### El cron plano queda como referencia
+
+El mismo sync se puede correr sin Prefect, como cron del sistema. No se usa en el VPS, pero queda en el repo como alternativa:
+
+```bash
+uv sync && uv run python -m sync
+```
 
 ```cron
-*/5 * * * * /usr/bin/flock -n /tmp/fadua-sync.lock -c 'cd /home/USUARIO/fadua-woo-sheets-sync/python && /home/USUARIO/.local/bin/uv run python -m sync'
+*/5 * * * * /usr/bin/flock -n /tmp/fadua-sync.lock -c 'cd /ruta/python && uv run python -m sync'
 ```
 
 ## 5. Versión n8n en el servidor

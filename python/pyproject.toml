@@ -10,6 +10,13 @@ dependencies = [
     "requests>=2.34.2",
 ]
 
+[project.optional-dependencies]
+# Only needed for the Prefect-orchestrated run (python/docker-compose.yml).
+# The plain cron entrypoint (python -m sync) does not require Prefect.
+prefect = [
+    "prefect>=3",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

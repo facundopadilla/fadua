@@ -1,0 +1,52 @@
+# Prefect-orchestrated deployment of the Python sync.
+#
+#   prefect-server  -> API + UI (SQLite by default), exposed on :4200
+#   prefect-flow    -> the runner: runs sync_flow every 5 minutes and reports
+#                      each run to the server so it shows up in the UI
+#
+# Credentials are read from python/.env (docker compose loads it automatically).
+# The service account file is mounted read-only; it never enters the image.
+#
+# Put behind a reverse proxy at prefect.facundopadilla.com and set
+# PREFECT_UI_API_URL=https://prefect.facundopadilla.com/api in python/.env.
+
+services:
+  prefect-server:
+    image: prefecthq/prefect:3-latest
+    command: prefect server start --host 0.0.0.0
+    environment:
+      PREFECT_SERVER_API_HOST: 0.0.0.0
+      # URL the browser uses to reach the API (through the reverse proxy).
+      # Defaults to localhost for a quick local run.
+      PREFECT_UI_API_URL: ${PREFECT_UI_API_URL:-http://localhost:4200/api}
+    ports:
+      - "4200:4200"
+    volumes:
+      - prefect_data:/root/.prefect
+    restart: unless-stopped
+
+  prefect-flow:
+    build: .
+    command: python -m sync.prefect_flow
+    depends_on:
+      - prefect-server
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+      WC_BASE_URL: ${WC_BASE_URL:-https://fadua.ar/pruebas}
+      WC_CONSUMER_KEY: ${WC_CONSUMER_KEY}
+      WC_CONSUMER_SECRET: ${WC_CONSUMER_SECRET}
+      GOOGLE_SHEET_ID: ${GOOGLE_SHEET_ID}
+      GOOGLE_SHEET_TAB: ${GOOGLE_SHEET_TAB:-python}
+      # In-container path of the mounted service account file
+      GOOGLE_SA_JSON: /app/service-account.json
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD}
+      NOTIFY_TO: ${NOTIFY_TO:-tejada.ca23@gmail.com}
+    volumes:
+      - ./service-account.json:/app/service-account.json:ro
+    restart: unless-stopped
+
+volumes:
+  prefect_data:
