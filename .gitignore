@@ -1,0 +1,20 @@
+# Secrets — never commit
+.env
+service-account.json
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.uv/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+
+# Tool caches
+.impeccable/
