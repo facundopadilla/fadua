@@ -6,7 +6,4 @@ service-account.json
 .uv/
 __pycache__/
 *.pyc
-.pytest_cache/
-logs/
-tests/
 .impeccable/

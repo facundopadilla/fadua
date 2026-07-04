@@ -1,14 +1,14 @@
-# Prefect-orchestrated deployment of the Python sync.
+# Prefect-orchestrated deployment of the sync (standalone).
 #
 #   prefect-server  -> API + UI (SQLite by default), exposed on :4200
 #   prefect-flow    -> the runner: runs sync_flow every 5 minutes and reports
 #                      each run to the server so it shows up in the UI
 #
-# Credentials are read from python/.env (docker compose loads it automatically).
+# Credentials are read from ./.env (docker compose loads it automatically).
 # The service account file is mounted read-only; it never enters the image.
 #
 # Put behind a reverse proxy at prefect.facundopadilla.com and set
-# PREFECT_UI_API_URL=https://prefect.facundopadilla.com/api in python/.env.
+# PREFECT_UI_API_URL=https://prefect.facundopadilla.com/api in ./.env.
 
 services:
   prefect-server:

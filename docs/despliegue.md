@@ -36,7 +36,7 @@ Esta es la que corre en el VPS. Prefect levanta una UI donde ves cada corrida co
 
 ```bash
 git clone <repo> fadua-woo-sheets-sync
-cd fadua-woo-sheets-sync/python
+cd fadua-woo-sheets-sync/prefect
 
 cp .env.example .env      # completá las credenciales reales
 chmod 600 .env
@@ -94,14 +94,15 @@ Para bajar todo, `docker compose down` (con `-v` además borra el historial de c
 
 ### El cron plano queda como referencia
 
-El mismo sync se puede correr sin Prefect, como cron del sistema. No se usa en el VPS, pero queda en el repo como alternativa:
+El mismo sync está en `python/` para correr sin Prefect, como cron del sistema. No se usa en el VPS, pero queda en el repo como alternativa:
 
 ```bash
+cd ../python
 uv sync && uv run python -m sync
 ```
 
 ```cron
-*/5 * * * * /usr/bin/flock -n /tmp/fadua-sync.lock -c 'cd /ruta/python && uv run python -m sync'
+*/5 * * * * /usr/bin/flock -n /tmp/fadua-sync.lock -c 'cd /ruta/al/repo/python && uv run python -m sync'
 ```
 
 ## 5. Versión n8n en el servidor

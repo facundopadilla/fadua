@@ -1,11 +1,12 @@
 [project]
-name = "fadua-woo-sheets-sync"
+name = "fadua-woo-sheets-sync-prefect"
 version = "0.1.0"
-description = "Sync published WooCommerce products into a Google Sheet and notify by email."
+description = "Prefect-orchestrated sync of published WooCommerce products into a Google Sheet."
 requires-python = ">=3.11"
 dependencies = [
     "google-auth>=2.55.1",
     "gspread>=6.2.1",
+    "prefect>=3",
     "python-dotenv>=1.2.2",
     "requests>=2.34.2",
 ]
@@ -16,8 +17,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["sync"]
-
-[dependency-groups]
-dev = [
-    "pytest>=9.1.1",
-]
