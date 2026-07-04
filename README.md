@@ -7,7 +7,7 @@
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-REST%20API-96588A?logo=woocommerce&logoColor=white)
 ![Google Sheets](https://img.shields.io/badge/Google%20Sheets-API-34A853?logo=googlesheets&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![tests](https://img.shields.io/badge/tests-8%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-23%20passing-brightgreen)
 
 Cada 5 minutos revisa los productos publicados de una tienda WooCommerce, agrega los nuevos a una planilla de Google Sheets y avisa por mail. Está resuelto en tres carpetas independientes, cada una con su forma de ejecutarlo: un script de Python por cron, la misma lógica orquestada con Prefect (con UI), y un workflow de n8n.
 
