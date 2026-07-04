@@ -98,9 +98,9 @@
       "parameters": {
         "language": "javaScript",
         "mode": "runOnceForAllItems",
-        "jsCode": "const products = $('Get WooCommerce Products').all().map((item) => item.json);\nconst existingRows = $('Get Existing Sheet Rows').all().map((item) => item.json);\n\n// Detect new products by ID only. WooCommerce keeps the original creation\n// date even after a draft product becomes published, so date-based diffing\n// is not reliable (verified against the live API). Empty IDs are filtered so\n// that an empty sheet on the first run does not create a phantom entry.\nconst existingIds = new Set(\n  existingRows\n    .map((row) => String(row.ID))\n    .filter((id) => id && id !== 'undefined')\n);\n\nconst newProducts = products.filter(\n  (product) => !existingIds.has(String(product.id))\n);\n\nconst syncedAt = new Date().toISOString();\n\nreturn newProducts.map((product) => ({\n  json: {\n    ID: product.id,\n    Producto: product.name,\n    Precio: product.price,\n    Imagen: product.images && product.images.length > 0 ? product.images[0].src : '',\n    Sincronizado: syncedAt,\n  },\n}));\n"
+        "jsCode": "const products = $('Get WooCommerce Products').all().map((item) => item.json);\nconst existingRows = $('Get Existing Sheet Rows').all().map((item) => item.json);\n\n// Map existing sheet rows by ID (as string) for O(1) lookup. Empty IDs are\n// filtered so that an empty sheet on the first run does not create a\n// phantom entry.\nconst existingRowsById = new Map();\nfor (const row of existingRows) {\n  const id = String(row.ID);\n  if (id && id !== 'undefined') {\n    existingRowsById.set(id, row);\n  }\n}\n\nconst syncedAt = new Date().toISOString();\nconst results = [];\n\nfor (const product of products) {\n  const id = String(product.id);\n  const name = product.name;\n  const price = String(product.price);\n  const image = product.images && product.images.length > 0 ? product.images[0].src : '';\n\n  const existingRow = existingRowsById.get(id);\n\n  // Not in the sheet yet -> new product.\n  if (!existingRow) {\n    results.push({\n      json: {\n        ID: product.id,\n        Producto: name,\n        Precio: price,\n        Imagen: image,\n        Sincronizado: syncedAt,\n        accion: 'alta',\n        detalle: '',\n      },\n    });\n    continue;\n  }\n\n  // Already in the sheet -> compare as strings, since Google Sheets always\n  // returns text values regardless of the original WooCommerce type.\n  const existingName = existingRow.Producto !== undefined ? String(existingRow.Producto) : '';\n  const existingPrice = existingRow.Precio !== undefined ? String(existingRow.Precio) : '';\n  const existingImage = existingRow.Imagen !== undefined ? String(existingRow.Imagen) : '';\n\n  const changes = [];\n  if (existingName !== name) {\n    changes.push(`Producto \"${existingName}\" → \"${name}\"`);\n  }\n  if (existingPrice !== price) {\n    changes.push(`Precio $${existingPrice} → $${price}`);\n  }\n  if (existingImage !== image) {\n    changes.push('Imagen actualizada');\n  }\n\n  // Nothing tracked changed -> discard, do not touch the sheet or the email.\n  if (changes.length === 0) {\n    continue;\n  }\n\n  results.push({\n    json: {\n      ID: product.id,\n      Producto: name,\n      Precio: price,\n      Imagen: image,\n      Sincronizado: syncedAt,\n      accion: 'cambio',\n      detalle: changes.join('; '),\n    },\n  });\n}\n\nreturn results;\n"
       },
-      "name": "Diff New Products",
+      "name": "Classify Products",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -113,7 +113,7 @@
       "parameters": {
         "authentication": "serviceAccount",
         "resource": "sheet",
-        "operation": "append",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
           "mode": "id",
@@ -184,9 +184,11 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "cellFormat": "RAW"
+        }
       },
-      "name": "Append New Products",
+      "name": "Append or Update Products",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
@@ -205,7 +207,7 @@
       "parameters": {
         "language": "javaScript",
         "mode": "runOnceForAllItems",
-        "jsCode": "// Collapse the N appended rows into a single item so the summary email is\n// sent exactly once per run, no matter how many new products were added.\n// If there were zero new products this node never runs (the append node\n// produced no items), so no email is sent.\nreturn [{ json: { count: $('Diff New Products').all().length } }];\n"
+        "jsCode": "// Group the classified items into \"alta\" (new) and \"cambio\" (updated), and\n// pre-format the subject/body pieces here so the email node only has to\n// interpolate ready-made strings.\nconst items = $('Classify Products').all().map((item) => item.json);\n\nconst nuevos = items.filter((item) => item.accion === 'alta');\nconst actualizados = items.filter((item) => item.accion === 'cambio');\n\nconst subjectParts = [];\nif (nuevos.length > 0) {\n  subjectParts.push(`${nuevos.length} nuevo${nuevos.length === 1 ? '' : 's'}`);\n}\nif (actualizados.length > 0) {\n  subjectParts.push(`${actualizados.length} actualizado${actualizados.length === 1 ? '' : 's'}`);\n}\n\nconst bodySections = [];\nif (nuevos.length > 0) {\n  const lines = nuevos.map((item) => `- ID ${item.ID}: ${item.Producto} (precio: ${item.Precio})`);\n  bodySections.push(`Nuevos:\\n${lines.join('\\n')}`);\n}\nif (actualizados.length > 0) {\n  const lines = actualizados.map((item) => `- ID ${item.ID}: ${item.Producto} — ${item.detalle}`);\n  bodySections.push(`Actualizados:\\n${lines.join('\\n')}`);\n}\n\nreturn [\n  {\n    json: {\n      countNuevos: nuevos.length,\n      countActualizados: actualizados.length,\n      subjectSummary: subjectParts.join(', '),\n      bodySummary: bodySections.join('\\n\\n'),\n    },\n  },\n];\n"
       },
       "name": "Summarize For Email",
       "type": "n8n-nodes-base.code",
@@ -220,9 +222,9 @@
       "parameters": {
         "fromEmail": "REPLACE_WITH_SENDER_GMAIL_ADDRESS@gmail.com",
         "toEmail": "tejada.ca23@gmail.com",
-        "subject": "=[N8N] {{ $('Diff New Products').all().length }} producto(s) nuevo(s) sincronizado(s)",
+        "subject": "=[N8N] {{ $json.subjectSummary }}",
         "emailFormat": "text",
-        "text": "=Se sincronizaron {{ $('Diff New Products').all().length }} producto(s) nuevo(s) desde WooCommerce hacia Google Sheets (pestaña \"n8n\").\n\nDetalle:\n{{ $('Diff New Products').all().map(item => `- ID ${item.json.ID}: ${item.json.Producto} (precio: ${item.json.Precio})`).join('\\n') }}\n\nFecha de sincronización: {{ $now.toISO() }}\n",
+        "text": "=Sincronización de productos entre WooCommerce y Google Sheets (pestaña \"n8n\").\n\n{{ $json.bodySummary }}\n\nFecha de sincronización: {{ $now.toISO() }}\n",
         "options": {}
       },
       "name": "Send Email Summary",
@@ -268,25 +270,25 @@
       "main": [
         [
           {
-            "node": "Diff New Products",
+            "node": "Classify Products",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Diff New Products": {
+    "Classify Products": {
       "main": [
         [
           {
-            "node": "Append New Products",
+            "node": "Append or Update Products",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Append New Products": {
+    "Append or Update Products": {
       "main": [
         [
           {

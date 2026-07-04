@@ -6,24 +6,25 @@ from email.message import EmailMessage
 SMTP_TIMEOUT_SECONDS = 30
 
 
-def send_new_products_notification(
+def send_sync_notification(
     smtp_host: str,
     smtp_port: int,
     smtp_user: str,
     smtp_app_password: str,
     notify_to: str,
     new_products: list,
+    changed_products: list,
 ) -> None:
-    """Send a summary email listing the products just synced to the sheet.
+    """Send a summary email listing the products just added and updated in the sheet.
 
-    Caller decides whether to invoke this at all (the "zero new products ->
+    Caller decides whether to invoke this at all (the "nothing to report ->
     stay silent" rule lives in the orchestrator, not here).
     """
     message = EmailMessage()
-    message["Subject"] = _build_subject(len(new_products))
+    message["Subject"] = _build_subject(len(new_products), len(changed_products))
     message["From"] = smtp_user
     message["To"] = notify_to
-    message.set_content(_build_body(new_products))
+    message.set_content(_build_body(new_products, changed_products))
 
     with smtplib.SMTP(smtp_host, smtp_port, timeout=SMTP_TIMEOUT_SECONDS) as server:
         server.starttls()
@@ -31,34 +32,62 @@ def send_new_products_notification(
         server.send_message(message)
 
 
-def _count_phrase(count: int) -> str:
-    """Return a naturally pluralized Spanish noun phrase, e.g. '1 producto nuevo'."""
-    if count == 1:
-        return "1 producto nuevo"
-    return f"{count} productos nuevos"
+def _pluralize(count: int, singular: str, plural: str) -> str:
+    """Return count-prefixed Spanish text, agreeing in number, e.g. '1 producto nuevo'."""
+    return f"{count} {singular}" if count == 1 else f"{count} {plural}"
 
 
-def _build_subject(count: int) -> str:
-    """Build the email subject, agreeing in number (the demo syncs one product)."""
-    synced_word = "sincronizado" if count == 1 else "sincronizados"
-    return f"[PREFECT] {_count_phrase(count)} {synced_word}"
+def _build_subject(new_count: int, changed_count: int) -> str:
+    """Build the email subject. A side whose count is 0 is never mentioned.
+
+    When both sides are present, the combined form drops the "producto(s)"
+    noun and keeps only "nuevo(s)"/"actualizado(s)", e.g.
+    "[PREFECT] 2 nuevos, 1 actualizado".
+    """
+    if new_count and changed_count:
+        new_phrase = _pluralize(new_count, "nuevo", "nuevos")
+        changed_phrase = _pluralize(changed_count, "actualizado", "actualizados")
+        return f"[PREFECT] {new_phrase}, {changed_phrase}"
+    if new_count:
+        return f"[PREFECT] {_pluralize(new_count, 'producto nuevo', 'productos nuevos')}"
+    return f"[PREFECT] {_pluralize(changed_count, 'producto actualizado', 'productos actualizados')}"
 
 
-def _build_body(new_products: list) -> str:
-    count = len(new_products)
-    verb_phrase = "quedó agregado" if count == 1 else "quedaron agregados"
+def _price_suffix(price: str) -> str:
+    """Return ' ($price)', or '' when price is blank (never render empty parens)."""
+    return f" (${price})" if price else ""
 
-    lines = [
-        "Hola,",
-        "",
-        f"La sincronización con WooCommerce encontró {_count_phrase(count)} y {verb_phrase} a la planilla:",
-        "",
-    ]
-    for product in new_products:
-        price_suffix = f" (${product['price']})" if product["price"] else ""
-        lines.append(f"- {product['name']}{price_suffix}")
-    lines.append("")
-    lines.append("Se puede revisar el detalle completo en la planilla de Google Sheets.")
-    lines.append("")
-    lines.append("Este correo se generó automáticamente durante la sincronización periódica.")
-    return "\n".join(lines)
+
+def _describe_change(entry: dict) -> str:
+    """Describe one changed product's field diffs as a single readable line."""
+    label = entry["product"]["name"]
+    changes = entry["changes"]
+    descriptors = []
+    if "Producto" in changes:
+        old_value, new_value = changes["Producto"]
+        descriptors.append(f"Producto {old_value} → {new_value}")
+    if "Precio" in changes:
+        old_value, new_value = changes["Precio"]
+        descriptors.append(f"Precio ${old_value} → ${new_value}")
+    if "Imagen" in changes:
+        descriptors.append("Imagen actualizada")
+    return f"{label}: {', '.join(descriptors)}"
+
+
+def _build_body(new_products: list, changed_products: list) -> str:
+    """Build the email body: up to two sections, only rendered when non-empty."""
+    sections = []
+
+    if new_products:
+        lines = ["Nuevos:"]
+        for product in new_products:
+            lines.append(f"- {product['name']}{_price_suffix(product['price'])}")
+        sections.append("\n".join(lines))
+
+    if changed_products:
+        lines = ["Actualizados:"]
+        for entry in changed_products:
+            lines.append(f"- {_describe_change(entry)}")
+        sections.append("\n".join(lines))
+
+    return "\n\n".join(sections)

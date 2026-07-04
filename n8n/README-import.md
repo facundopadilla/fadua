@@ -1,6 +1,6 @@
 # Importar el workflow de n8n — FADUA WooCommerce → Google Sheets
 
-Este workflow hace lo mismo que las versiones de Python y Prefect: cada 5 minutos lee los productos publicados de WooCommerce, los compara por `ID` contra la pestaña `n8n` de la planilla, agrega solo los nuevos y manda un mail resumen si hubo al menos uno.
+Este workflow hace lo mismo que las versiones de Python y Prefect: cada 5 minutos lee los productos publicados de WooCommerce, los compara por `ID` contra la pestaña `n8n` de la planilla y clasifica cada producto como alta (ID nuevo) o cambio (ID existente con Producto, Precio o Imagen distintos). Agrega las altas y actualiza en su misma fila los que cambiaron (sin duplicar), y manda un mail resumen si hubo al menos una alta o un cambio.
 
 La URL de WooCommerce ya viene puesta dentro del workflow (n8n bloquea el acceso a `$env` por defecto, por eso va escrita directo). El ID de la planilla es un placeholder que reemplazás en los dos nodos de Google Sheets. Además tenés que cargar las tres credenciales.
 
@@ -35,12 +35,12 @@ Después de crear las credenciales, abrí cada nodo y confirmá que quedó selec
 
 - **Get WooCommerce Products** → `WooCommerce API`
 - **Get Existing Sheet Rows** → `Google Sheets - FADUA`
-- **Append New Products** → `Google Sheets - FADUA`
+- **Append or Update Products** → `Google Sheets - FADUA`
 - **Send Email Summary** → `SMTP - FADUA`
 
 ## 3b. Poner el ID de tu planilla
 
-En los nodos **Get Existing Sheet Rows** y **Append New Products**, en el campo **Document ID** reemplazá `YOUR_GOOGLE_SHEET_ID` por el ID de tu planilla (la parte de la URL entre `/d/` y `/edit`).
+En los nodos **Get Existing Sheet Rows** y **Append or Update Products**, en el campo **Document ID** reemplazá `YOUR_GOOGLE_SHEET_ID` por el ID de tu planilla (la parte de la URL entre `/d/` y `/edit`).
 
 ## 4. Ajustar el remitente del mail
 
