@@ -1,0 +1,55 @@
+# Production stack for the AI Analytics Chatbot.
+#
+# Architecture (single public entry point):
+#   frontend (nginx) -> serves the SPA AND reverse-proxies /api/ to api:8000
+#   api      (FastAPI) -> internal only, reachable as `api:8000`
+#   redis    -> conversation memory, in-container with AOF persistence
+#   MySQL    -> EXTERNAL (not a container). The backend connects via DATABASE_URL
+#              in the .env file. Load db/init.sql into that external MySQL once.
+#
+# Usage:
+#   cp .env.production.example .env   # then fill DATABASE_URL + LLM_API_KEY
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# NOTE: the first build is SLOW because the backend Dockerfile installs Prophet
+# (a native-compiled dependency). Subsequent builds are cached.
+
+# Stable project name so containers are not duplicated per directory.
+name: fadua
+
+services:
+  api:
+    build: ./backend
+    # Reads DATABASE_URL (external MySQL), REDIS_URL, LLM_* and CORS_ORIGINS.
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: unless-stopped
+    # NO published ports: the API is internal only. The frontend reaches it as
+    # `api:8000` over the compose network. Do NOT expose it publicly.
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the SPA at build time. Same-origin => proxied via /api.
+        VITE_API_URL: /api
+    # Public entry point. Change "80:80" to e.g. "8080:80" to serve on 8080
+    # (useful if another service already owns port 80 on the host).
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    # Not published: only the api container talks to it over the compose network.
+
+volumes:
+  redis_data: {}

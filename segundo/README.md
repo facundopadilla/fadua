@@ -77,6 +77,35 @@ Read from `docker-compose.yml` — the source of truth if this drifts:
 | `redis` | `6379` | AOF persistence enabled |
 | frontend (Vite dev server) | `5173` | Vite default; printed on `npm run dev` |
 
+## Production deployment
+
+Production runs a different topology than dev. A single public entry point — the **frontend nginx** — serves the built SPA *and* reverse-proxies `/api/` to the internal backend. **MySQL is external** (a managed instance or your own server, not a container); the backend reaches it via `DATABASE_URL`. Redis stays a container with AOF persistence. Files: `docker-compose.prod.yml`, `frontend/Dockerfile`, `frontend/nginx.conf`, `.env.production.example`.
+
+From this directory (`segundo/`):
+
+```bash
+# 1. Create the prod env from the template and fill it in
+cp .env.production.example .env
+#    - DATABASE_URL  -> your EXTERNAL production MySQL (not a container)
+#    - LLM_API_KEY   -> your OpenCode GO key
+
+# 2. Load the seed into your external MySQL (no seed-mounting container in prod)
+mysql -h YOUR_PROD_MYSQL_HOST -u USER -p DBNAME < db/init.sql
+
+# 3. Build and start (first build is slow — the backend installs Prophet)
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+The app is served on **port 80** (`http://<your-host>/`). To use a different host port, change `ports: ["80:80"]` to e.g. `"8080:80"` in `docker-compose.prod.yml`.
+
+How the API path resolves: the SPA is built with `VITE_API_URL=/api`, so the browser calls `/api/chat`, `/api/health`, `/api/models` — same origin. nginx (`frontend/nginx.conf`) proxies `location /api/` to `http://api:8000/` with a trailing slash, which **strips the `/api` prefix**, so the backend receives `/chat`, `/health`, `/models` (its actual routes). Because it's same-origin, `CORS_ORIGINS` isn't needed unless you serve the frontend from a different origin.
+
+SSE note: the nginx `/api/` block disables buffering/caching and sets `proxy_read_timeout 300s` so long streaming responses (deepseek can take 60s+) aren't cut off.
+
+Redis runs in-container by default (durable via a named volume + AOF). To point at an external/managed Redis instead, set `REDIS_URL` in `.env` to that instance and optionally remove the `redis` service from `docker-compose.prod.yml`.
+
+Not covered here (out of MVP scope, per `CLAUDE.md`): TLS/HTTPS termination, API authentication, and rate-limiting — add these before any real public exposure.
+
 ## How it works
 
 Every chat request tries the LLM tool-calling agent first (when `LLM_API_KEY` is set): a PydanticAI agent decides which controlled tool to call — `run_sql`, `compute_kpis`, `forecast` (Prophet), `make_chart` — and writes the final answer over their real results. If that path fails for any reason (no key, network error, provider issue), the backend transparently falls back to a deterministic rule-based planner + template engine that answers the same way without an LLM in the loop.
