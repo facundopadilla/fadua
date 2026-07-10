@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Replica Test Form</title>
+</head>
+<body>
+  <h1>Control de Morosidad y Pagos (Replica)</h1>
+  <form id="replica-form">
+
+    <!-- Field 1: short text (type 0), item_id 111.
+         data-params mimics the REAL Google Forms format, which prefixes
+         the JSON-ish array with "%.@." — production's locator is a
+         contains-match on '[<item_id>,', so the prefix keeps the replica
+         honest against any future switch to a starts-with match. -->
+    <div class="question" data-params="%.@.[111,0,1,0]">
+      <label for="field-111">Nombre del Cliente</label>
+      <input id="field-111" type="text" role="textbox" aria-label="Nombre del Cliente" />
+    </div>
+
+    <!-- Field 2: radio (type 2), item_id 222 -->
+    <div class="question" data-params="%.@.[222,0,1,0]">
+      <span>Estado de Cuenta</span>
+      <div class="radio-group">
+        <span
+          role="radio"
+          aria-label="Al día"
+          aria-checked="false"
+          tabindex="0"
+          class="radio-option"
+          data-value="Al día"
+        >Al día</span>
+        <span
+          role="radio"
+          aria-label="Moroso"
+          aria-checked="false"
+          tabindex="0"
+          class="radio-option"
+          data-value="Moroso"
+        >Moroso</span>
+      </div>
+    </div>
+
+    <!-- Field 3: dropdown (type 3, ARIA listbox), item_id 333 -->
+    <div class="question" data-params="%.@.[333,0,1,0]">
+      <span>Tipo de Financiación</span>
+      <div
+        role="listbox"
+        id="listbox-333"
+        data-value=""
+        data-options="Plan de Ahorro,Crédito Prendario,Contado"
+        tabindex="0"
+        style="display: block; min-height: 1.5em; min-width: 8em; border: 1px solid #ccc; padding: 4px; cursor: pointer;"
+      >Seleccionar...</div>
+    </div>
+
+    <!-- Field 4: checkbox (type 4), item_id 444 -->
+    <div class="question" data-params="%.@.[444,0,1,0]">
+      <span>Requiere Acción de Cobranza</span>
+      <span
+        role="checkbox"
+        aria-label="Sí, activar protocolo"
+        aria-checked="false"
+        tabindex="0"
+        id="checkbox-444"
+      >Sí, activar protocolo</span>
+    </div>
+
+    <button type="button" role="button" id="submit-button">Enviar</button>
+  </form>
+
+  <script>
+    // Radio: click flips its own aria-checked to "true" (siblings are
+    // not un-checked — the task only requires single-selection realism,
+    // not full radio-group exclusivity).
+    document.querySelectorAll('[role="radio"]').forEach(function (radio) {
+      radio.addEventListener('click', function () {
+        radio.setAttribute('aria-checked', 'true');
+      });
+    });
+
+    // Checkbox: click flips its own aria-checked to "true".
+    document.getElementById('checkbox-444').addEventListener('click', function () {
+      this.setAttribute('aria-checked', 'true');
+    });
+
+    // Dropdown: options render lazily on first click, not at page load.
+    document.querySelectorAll('[role="listbox"]').forEach(function (listbox) {
+      var populated = false;
+
+      listbox.addEventListener('click', function (event) {
+        // Ignore clicks that are already targeting a rendered option
+        // (handled by the option's own listener below).
+        if (event.target !== listbox) {
+          return;
+        }
+        if (populated) {
+          return;
+        }
+        populated = true;
+
+        var options = listbox.getAttribute('data-options').split(',');
+        options.forEach(function (optionText) {
+          var option = document.createElement('div');
+          option.setAttribute('role', 'option');
+          option.setAttribute('data-value', optionText);
+          option.setAttribute('aria-selected', 'false');
+          option.textContent = optionText;
+
+          option.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            // Reset every sibling option's aria-selected before
+            // marking this one selected.
+            listbox.querySelectorAll('[role="option"]').forEach(function (sib) {
+              sib.setAttribute('aria-selected', 'false');
+            });
+            option.setAttribute('aria-selected', 'true');
+            listbox.setAttribute('data-value', optionText);
+          });
+
+          listbox.appendChild(option);
+        });
+      });
+    });
+
+    // Enviar: navigate to the confirmation page with a "formResponse"
+    // marker in the URL (query string), satisfying
+    // validator.confirmation's plain substring check on page.url.
+    document.getElementById('submit-button').addEventListener('click', function () {
+      window.location.href = 'confirmation.html?formResponse';
+    });
+  </script>
+</body>
+</html>

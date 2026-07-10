@@ -1,0 +1,5 @@
+"ID_Cliente","Nombre_Cliente"," Valor_Vehiculo","Tipo_Financiacion","Estado_Pago","Dias_Atraso"," Ultimo_Pago_Monto","Requiere_Cobranza"
+"FIAT-001","Carlos Mendoza"," $ 18,500,000 ","Crédito Prendario","Al Día","0"," $ 450,000 ","No"
+"FIAT-002","Ana María Silva"," $ 22,100,000 ","Plan de Ahorro","Moroso","45"," $ -   ","Sí"
+"FIAT-003","Lucas Benítez"," $ 26,400,000 ","Contado / Directo","Moroso","15"," $ 320,000 ","No"
+"FIAT-004","Valentina Rossi"," $ 16,800,000 ","Crédito Prendario","Al Día","0"," $ 380,000 ","No"

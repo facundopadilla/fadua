@@ -1,0 +1,348 @@
+[
+ null,
+ [
+  "Formulario para el registro detallado de clientes, vehículos comercializados y modalidades de venta.",
+  [
+   [
+    1623547452,
+    "DATOS DEL CLIENTE",
+    null,
+    8,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "DATOS DEL CLIENTE"
+    ]
+   ],
+   [
+    999998362,
+    "ID del Cliente",
+    null,
+    0,
+    [
+     [
+      814069894,
+      null,
+      1
+     ]
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "ID del Cliente"
+    ]
+   ],
+   [
+    1400945540,
+    "Nombre Completo",
+    null,
+    0,
+    [
+     [
+      657237802,
+      null,
+      1
+     ]
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "Nombre Completo"
+    ]
+   ],
+   [
+    1881411619,
+    "Correo Electrónico",
+    null,
+    0,
+    [
+     [
+      1855970967,
+      null,
+      1
+     ]
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "Correo Electrónico"
+    ]
+   ],
+   [
+    146186431,
+    "Teléfono de Contacto",
+    null,
+    0,
+    [
+     [
+      136415275,
+      null,
+      1
+     ]
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "Teléfono de Contacto"
+    ]
+   ],
+   [
+    988410704,
+    "DATOS DE LA UNIDAD",
+    null,
+    8,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "DATOS DE LA UNIDAD"
+    ]
+   ],
+   [
+    667185096,
+    "Modelo de Automóvil",
+    null,
+    3,
+    [
+     [
+      2099080465,
+      [
+       [
+        "Fiat Cronos",
+        null,
+        null,
+        null,
+        0
+       ],
+       [
+        "600",
+        null,
+        null,
+        null,
+        0
+       ],
+       [
+        "Fiat Strada",
+        null,
+        null,
+        null,
+        0
+       ],
+       [
+        "Fiat Fastback",
+        null,
+        null,
+        null,
+        0
+       ],
+       [
+        "Fiat Pulse",
+        null,
+        null,
+        null,
+        0
+       ]
+      ],
+      1,
+      null,
+      null,
+      null,
+      null,
+      null,
+      1
+     ]
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "Modelo de Automóvil"
+    ]
+   ],
+   [
+    1583087190,
+    "Valor Total del Vehículo",
+    null,
+    0,
+    [
+     [
+      1493778692,
+      null,
+      1
+     ]
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "Valor Total del Vehículo"
+    ]
+   ],
+   [
+    1899311718,
+    "DATOS DE COMPRA",
+    null,
+    8,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "DATOS DE COMPRA"
+    ]
+   ],
+   [
+    34738716,
+    "Tipo de Financiación",
+    null,
+    2,
+    [
+     [
+      487326979,
+      [
+       [
+        "Crédito Prendario",
+        null,
+        null,
+        null,
+        0
+       ],
+       [
+        "Plan de Ahorro",
+        null,
+        null,
+        null,
+        0
+       ],
+       [
+        "Contado / Directo",
+        null,
+        null,
+        null,
+        0
+       ]
+      ],
+      1,
+      null,
+      null,
+      null,
+      null,
+      null,
+      1
+     ]
+    ],
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    [
+     null,
+     "Tipo de Financiación"
+    ]
+   ]
+  ],
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  "Registro de Ventas",
+  74,
+  [
+   null,
+   null,
+   null,
+   2,
+   null,
+   null,
+   1
+  ],
+  null,
+  null,
+  null,
+  null,
+  [
+   2
+  ],
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  [
+   null,
+   "Formulario para el registro detallado de clientes, vehículos comercializados y modalidades de venta."
+  ],
+  [
+   null,
+   "Registro de Ventas"
+  ]
+ ],
+ "/forms",
+ "Registro de Ventas",
+ null,
+ null,
+ null,
+ "",
+ null,
+ 0,
+ 0,
+ null,
+ "Yuhmak",
+ 1,
+ "e/1FAIpQLSfx7iW9XGsgU0jSFyv9yIcoDPAzqOHYK5Pj2fXHKIBAxZ1MgQ",
+ 0,
+ "[]",
+ 0,
+ 0,
+ 1
+]
