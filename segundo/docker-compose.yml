@@ -1,0 +1,48 @@
+services:
+  api:
+    build: ./backend
+    ports:
+      # Host 8000 was taken by another Docker container; use 8010 on the host.
+      - "8010:8000"
+    # Compose-network hosts: inside the network the api reaches services by
+    # name (redis, mysql), never localhost. env_file below can still override.
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: mysql+pymysql://analytics:analytics@mysql:3306/analytics
+    # Copy backend/env.example to backend/.env first (see backend/README.md).
+    # required: false keeps `docker compose config` valid before that copy.
+    env_file:
+      - path: backend/.env
+        required: false
+    depends_on:
+      - mysql
+      - redis
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: analytics
+      MYSQL_USER: analytics
+      MYSQL_PASSWORD: analytics
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Seed runs only on first init of an empty volume (recreate with `down -v`).
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  redis:
+    image: redis:7
+    # AOF persistence is required (locked decision): together with the named
+    # volume it lets conversation sessions survive a Redis/VPS restart during
+    # the review window.
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:

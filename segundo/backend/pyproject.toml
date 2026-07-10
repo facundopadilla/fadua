@@ -1,0 +1,28 @@
+[project]
+name = "ai-analytics-backend"
+version = "0.1.0"
+description = "Backend for the AI Analytics Chatbot (scaffolding iteration)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic>=2",
+    "pydantic-settings",
+    "redis>=5",
+    "sqlglot",
+    "sqlalchemy>=2",
+    "pymysql",
+    "pandas",
+    "prophet",
+    "pydantic-ai-slim[openai]",
+]
+# pydantic-ai-slim[openai] is a hard dependency: both the optional reword hook
+# (app/agent/llm_hook.py) and the tool-calling agent (app/agent/llm_agent.py)
+# need it importable unconditionally. Neither module opens a real client or
+# makes a network call unless settings.llm_api_key is set — importing either
+# module is always safe with an empty key.
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
